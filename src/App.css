@@ -36,3 +36,25 @@
     transform: rotate(360deg);
   }
 }
+
+.App {
+  text-align: center;
+}
+
+.game-area {
+  position: relative;
+  width: 80%;
+  height: 400px;
+  margin: 20px auto;
+  border: 2px solid black;
+  position: relative;
+}
+
+.dot {
+  width: 20px;
+  height: 20px;
+  background-color: red;
+  border-radius: 50%;
+  position: absolute;
+  cursor: pointer;
+}
