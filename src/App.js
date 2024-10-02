@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './App.css';
+import Snackbar from './Snackbar';
 // import clickSoundFile from './click-sound.mp3';
+// import comboSoundFile from './combo-sound.mp3';
 // import bonusSoundFile from './bonus-sound.mp3';
 
 function App() {
@@ -9,38 +11,40 @@ function App() {
   const [level, setLevel] = useState(1);
   const [timeLeft, setTimeLeft] = useState(30);
   const [gameOver, setGameOver] = useState(false);
-  const [slowMotion, setSlowMotion] = useState(false);
-  const [doublePoints, setDoublePoints] = useState(false);
   const [combo, setCombo] = useState(0);
-  const [highScores, setHighScores] = useState(JSON.parse(localStorage.getItem('highScores')) || []);
-  
-  // const clickSound = new Audio(clickSoundFile);
-  // const bonusSound = new Audio(bonusSoundFile);
+  const [streak, setStreak] = useState(0);
+  const [snackbarMessage, setSnackbarMessage] = useState('Welcome to BetterAim!');
+  const [snackbarVisible, setSnackbarVisible] = useState(true);
+  const [specialDot, setSpecialDot] = useState(null);
   const dotMoveInterval = useRef(null);
 
-  // Generate random dots
+  // const clickSound = new Audio(clickSoundFile);
+  // const comboSound = new Audio(comboSoundFile);
+  // const bonusSound = new Audio(bonusSoundFile);
+
+  // Generate random dots with special dot chance
   const generateDots = () => {
     const numDots = level * 5;
     const newDots = Array.from({ length: numDots }, () => ({
       id: Math.random(),
       x: Math.random() * 90,
       y: Math.random() * 90,
-      size: Math.random() * (30 - 10) + 10, // Random size between 10px and 30px
-      isBonus: Math.random() < 0.1, // 10% chance for bonus
-      speed: Math.random() * 0.5 + 0.5, // Speed for moving dots
+      size: Math.random() * (30 - 10) + 10,
+      isSpecial: Math.random() < 0.05, // 5% chance for a special dot
+      speed: Math.random() * 0.5 + 0.5,
     }));
     setDots(newDots);
   };
 
-  // Move dots based on level difficulty
+  // Move dots dynamically
   const moveDots = () => {
     if (level > 1) {
       dotMoveInterval.current = setInterval(() => {
         setDots((prevDots) =>
           prevDots.map((dot) => ({
             ...dot,
-            x: (dot.x + dot.speed * (slowMotion ? 0.5 : 1)) % 90,
-            y: (dot.y + dot.speed * (slowMotion ? 0.5 : 1)) % 90,
+            x: (dot.x + dot.speed) % 90,
+            y: (dot.y + dot.speed) % 90,
           }))
         );
       }, 100);
@@ -50,10 +54,13 @@ function App() {
   useEffect(() => {
     generateDots();
     moveDots();
+    setSnackbarMessage(`Level ${level} starts!`);
+    setSnackbarVisible(true);
+    setTimeout(() => setSnackbarVisible(false), 3000);
+
     return () => clearInterval(dotMoveInterval.current);
   }, [level]);
 
-  // Timer logic and power-ups
   useEffect(() => {
     const interval = setInterval(() => {
       setTimeLeft((prevTime) => (prevTime > 0 ? prevTime - 1 : 0));
@@ -61,66 +68,59 @@ function App() {
 
     if (timeLeft === 0) {
       if (dots.length === 0) {
-        alert(`Level ${level} complete! Moving to the next level.`);
         setLevel(level + 1);
         setTimeLeft(30);
+        setSnackbarMessage(`Great job! Moving to level ${level + 1}.`);
+        setSnackbarVisible(true);
+        setTimeout(() => setSnackbarVisible(false), 3000);
       } else {
         setGameOver(true);
-        updateHighScores(score);
+        setSnackbarMessage(`Game over! You reached level ${level}.`);
+        setSnackbarVisible(true);
       }
     }
 
     return () => clearInterval(interval);
-  }, [timeLeft, dots]);
+  }, [timeLeft, dots, level]);
 
-  // Handle dot click
+  // Handle dot click logic with combos and streaks
   const handleDotClick = (dot) => {
     // clickSound.play();
-    let points = dot.isBonus ? 50 : 10;
-    if (doublePoints) points *= 2;
+    let points = dot.isSpecial ? 100 : 10;
     setScore(score + points);
+
+    if (dot.isSpecial) {
+      // bonusSound.play();
+      setSnackbarMessage('Special dot hit! Extra points!');
+      setSnackbarVisible(true);
+      setTimeout(() => setSnackbarVisible(false), 2000);
+    }
+
     setDots(dots.filter((d) => d.id !== dot.id));
 
-    // Increase combo count
+    // Increase combo and streak
     setCombo(combo + 1);
+    setStreak(streak + 1);
 
-    // Trigger slow motion power-up every 10 combo hits
     if (combo > 0 && combo % 10 === 0) {
-      activatePowerUp('slowMotion');
-    }
-
-    // Trigger double points at random
-    if (Math.random() < 0.05) {
-      activatePowerUp('doublePoints');
+      // comboSound.play();
+      setSnackbarMessage('Combo streak! Keep it up!');
+      setSnackbarVisible(true);
+      setTimeout(() => setSnackbarVisible(false), 2000);
     }
   };
 
-  // Activate power-ups
-  const activatePowerUp = (type) => {
-    if (type === 'slowMotion') {
-      setSlowMotion(true);
-      setTimeout(() => setSlowMotion(false), 5000);
-    } else if (type === 'doublePoints') {
-      setDoublePoints(true);
-      setTimeout(() => setDoublePoints(false), 5000);
-    }
-  };
-
-  // Update leaderboard
-  const updateHighScores = (newScore) => {
-    const updatedScores = [...highScores, newScore].sort((a, b) => b - a).slice(0, 5);
-    setHighScores(updatedScores);
-    localStorage.setItem('highScores', JSON.stringify(updatedScores));
-  };
-
-  // Restart game
   const restartGame = () => {
     setScore(0);
     setLevel(1);
     setTimeLeft(30);
     setGameOver(false);
     setCombo(0);
+    setStreak(0);
     generateDots();
+    setSnackbarMessage('Game restarted!');
+    setSnackbarVisible(true);
+    setTimeout(() => setSnackbarVisible(false), 3000);
   };
 
   if (gameOver) {
@@ -129,51 +129,39 @@ function App() {
         <h1>Game Over!</h1>
         <p>Your Score: {score}</p>
         <button onClick={restartGame}>Restart Game</button>
-        <h3>Leaderboard:</h3>
-        <ol>
-          {highScores.map((highScore, index) => (
-            <li key={index}>{highScore}</li>
-          ))}
-        </ol>
       </div>
     );
   }
 
   return (
-    <div className="App fade-in" style={{ backgroundColor: level % 2 === 0 ? '#f0f0f0' : '#e0ffe0' }}>
+    <div className="App fade-in">
       <h1>BetterAim</h1>
       <h2>Level: {level}</h2>
       <h2 className="score-counter">Score: {score}</h2>
       <h2>Combo: {combo}</h2>
       <h2>Time Left: {timeLeft}s</h2>
-      <ProgressBar timeLeft={timeLeft} />
-
-      {slowMotion && <p className="power-up glow-effect">Slow Motion Activated!</p>}
-      {doublePoints && <p className="power-up glow-effect">Double Points Activated!</p>}
+      <h2>Streak: {streak}</h2>
 
       <div className="game-area">
         {dots.map((dot) => (
           <div
             key={dot.id}
-            className={`dot bounce ${dot.isBonus ? 'bonus' : ''}`}
+            className={`dot ${dot.isSpecial ? 'special-dot' : ''}`}
             style={{
               top: `${dot.y}%`,
               left: `${dot.x}%`,
               width: `${dot.size}px`,
               height: `${dot.size}px`,
-              backgroundColor: dot.size < 20 ? 'blue' : dot.size > 25 ? 'green' : 'red',
+              backgroundColor: dot.isSpecial ? 'gold' : 'red',
             }}
             onClick={() => handleDotClick(dot)}
           ></div>
         ))}
       </div>
+
+      {snackbarVisible && <Snackbar message={snackbarMessage} />}
     </div>
   );
-}
-
-function ProgressBar({ timeLeft }) {
-  const percentage = (timeLeft / 30) * 100;
-  return <div className="progress-bar" style={{ width: `${percentage}%` }}></div>;
 }
 
 export default App;
