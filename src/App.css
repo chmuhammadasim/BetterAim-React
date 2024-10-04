@@ -146,3 +146,28 @@
     transform: scale(1);
   }
 }
+
+.game-area {
+  position: relative;
+  width: 80%;
+  height: 80%; /* Ensure it takes up the full height */
+  border: 2px solid #3498db;
+  background-color: #f0f0f0;
+  overflow: hidden;
+}
+
+.balloon {
+  position: absolute;
+  border-radius: 50%;
+  transition: transform 0.2s ease, background-color 0.3s;
+}
+
+.balloon:hover {
+  transform: scale(1.2); /* Balloon enlarges slightly when hovered */
+}
+
+.bg-red-400 { background-color: #fc8181; }
+.bg-yellow-300 { background-color: #faf089; }
+.bg-blue-400 { background-color: #63b3ed; }
+.bg-green-400 { background-color: #68d391; }
+.bg-pink-300 { background-color: #fbb6ce; }

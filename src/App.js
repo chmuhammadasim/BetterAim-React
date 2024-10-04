@@ -1,76 +1,49 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import './App.css';
-import Snackbar from './Snackbar';
-// import clickSoundFile from './click-sound.mp3';
-// import comboSoundFile from './combo-sound.mp3';
-// import bonusSoundFile from './bonus-sound.mp3';
 
 function App() {
-  const [dots, setDots] = useState([]);
+  const [balloons, setBalloons] = useState([]);
   const [score, setScore] = useState(0);
   const [level, setLevel] = useState(1);
   const [timeLeft, setTimeLeft] = useState(30);
   const [gameOver, setGameOver] = useState(false);
-  const [combo, setCombo] = useState(0);
-  const [streak, setStreak] = useState(0);
-  const [snackbarMessage, setSnackbarMessage] = useState('Welcome to BetterAim!');
+  const [snackbarMessage, setSnackbarMessage] = useState('Welcome to Balloon Pop!');
   const [snackbarVisible, setSnackbarVisible] = useState(true);
-  const [specialDot, setSpecialDot] = useState(null);
-  const dotMoveInterval = useRef(null);
 
-  // const clickSound = new Audio(clickSoundFile);
-  // const comboSound = new Audio(comboSoundFile);
-  // const bonusSound = new Audio(bonusSoundFile);
-
-  // Generate random dots with special dot chance
-  const generateDots = () => {
-    const numDots = level * 5;
-    const newDots = Array.from({ length: numDots }, () => ({
+  // Generate random balloons with a special balloon chance
+  const generateBalloons = () => {
+    const numBalloons = level * 5;
+    const colors = ['bg-red-400', 'bg-yellow-300', 'bg-blue-400', 'bg-green-400', 'bg-pink-300'];
+    const newBalloons = Array.from({ length: numBalloons }, () => ({
       id: Math.random(),
-      x: Math.random() * 90,
-      y: Math.random() * 90,
-      size: Math.random() * (30 - 10) + 10,
-      isSpecial: Math.random() < 0.05, // 5% chance for a special dot
-      speed: Math.random() * 0.5 + 0.5,
+      x: Math.random() * 85, // Ensure x and y are within the visible range
+      y: Math.random() * 85,
+      size: Math.random() * (60 - 40) + 40, // Balloon size range
+      isSpecial: Math.random() < 0.1, // 10% chance for a special balloon
+      color: colors[Math.floor(Math.random() * colors.length)],
     }));
-    setDots(newDots);
+    setBalloons(newBalloons);
   };
 
-  // Move dots dynamically
-  const moveDots = () => {
-    if (level > 1) {
-      dotMoveInterval.current = setInterval(() => {
-        setDots((prevDots) =>
-          prevDots.map((dot) => ({
-            ...dot,
-            x: (dot.x + dot.speed) % 90,
-            y: (dot.y + dot.speed) % 90,
-          }))
-        );
-      }, 100);
-    }
-  };
-
+  // Trigger balloon generation for each level
   useEffect(() => {
-    generateDots();
-    moveDots();
+    generateBalloons();
     setSnackbarMessage(`Level ${level} starts!`);
     setSnackbarVisible(true);
     setTimeout(() => setSnackbarVisible(false), 3000);
-
-    return () => clearInterval(dotMoveInterval.current);
   }, [level]);
 
+  // Timer countdown
   useEffect(() => {
     const interval = setInterval(() => {
       setTimeLeft((prevTime) => (prevTime > 0 ? prevTime - 1 : 0));
     }, 1000);
 
     if (timeLeft === 0) {
-      if (dots.length === 0) {
+      if (balloons.length === 0) {
         setLevel(level + 1);
         setTimeLeft(30);
-        setSnackbarMessage(`Great job! Moving to level ${level + 1}.`);
+        setSnackbarMessage(`Great job! Level ${level + 1} starts now.`);
         setSnackbarVisible(true);
         setTimeout(() => setSnackbarVisible(false), 3000);
       } else {
@@ -81,85 +54,90 @@ function App() {
     }
 
     return () => clearInterval(interval);
-  }, [timeLeft, dots, level]);
+  }, [timeLeft, balloons, level]);
 
-  // Handle dot click logic with combos and streaks
-  const handleDotClick = (dot) => {
-    // clickSound.play();
-    let points = dot.isSpecial ? 100 : 10;
+  // Handle balloon click logic
+  const handleBalloonClick = (balloon) => {
+    const points = balloon.isSpecial ? 50 : 10;
     setScore(score + points);
 
-    if (dot.isSpecial) {
-      // bonusSound.play();
-      setSnackbarMessage('Special dot hit! Extra points!');
+    if (balloon.isSpecial) {
+      setSnackbarMessage('Special Balloon! Bonus points!');
       setSnackbarVisible(true);
       setTimeout(() => setSnackbarVisible(false), 2000);
     }
 
-    setDots(dots.filter((d) => d.id !== dot.id));
+    setBalloons(balloons.filter((b) => b.id !== balloon.id)); // Remove clicked balloon
 
-    // Increase combo and streak
-    setCombo(combo + 1);
-    setStreak(streak + 1);
-
-    if (combo > 0 && combo % 10 === 0) {
-      // comboSound.play();
-      setSnackbarMessage('Combo streak! Keep it up!');
+    // Check if all balloons are popped
+    if (balloons.length === 1) {
+      setLevel(level + 1);
+      setTimeLeft(30);
+      setSnackbarMessage(`Level ${level + 1} starts now!`);
       setSnackbarVisible(true);
-      setTimeout(() => setSnackbarVisible(false), 2000);
+      setTimeout(() => setSnackbarVisible(false), 3000);
     }
   };
 
+  // Restart game after game over
   const restartGame = () => {
     setScore(0);
     setLevel(1);
     setTimeLeft(30);
     setGameOver(false);
-    setCombo(0);
-    setStreak(0);
-    generateDots();
-    setSnackbarMessage('Game restarted!');
+    generateBalloons();
+    setSnackbarMessage('Game restarted! Pop the balloons!');
     setSnackbarVisible(true);
     setTimeout(() => setSnackbarVisible(false), 3000);
   };
 
+  // Game over screen
   if (gameOver) {
     return (
-      <div className="game-over fade-in">
-        <h1>Game Over!</h1>
-        <p>Your Score: {score}</p>
-        <button onClick={restartGame}>Restart Game</button>
+      <div className="flex flex-col items-center justify-center h-screen bg-gradient-to-r from-purple-400 via-pink-500 to-red-500 text-white">
+        <h1 className="text-5xl font-bold animate-pulse">Game Over!</h1>
+        <p className="text-3xl mt-4">Your Score: {score}</p>
+        <button
+          onClick={restartGame}
+          className="mt-6 px-8 py-3 bg-blue-600 rounded-full text-xl flex items-center gap-2 hover:bg-blue-700 transition-all transform hover:scale-110"
+        >
+          Restart Game
+        </button>
       </div>
     );
   }
 
   return (
-    <div className="App fade-in">
-      <h1>BetterAim</h1>
-      <h2>Level: {level}</h2>
-      <h2 className="score-counter">Score: {score}</h2>
-      <h2>Combo: {combo}</h2>
-      <h2>Time Left: {timeLeft}s</h2>
-      <h2>Streak: {streak}</h2>
+    <div className="flex flex-col items-center justify-center h-screen bg-gradient-to-b from-blue-200 to-blue-500">
+      <h1 className="text-6xl font-extrabold text-white mb-6 animate-bounce">Balloon Pop!</h1>
+      <div className="flex justify-between items-center w-full max-w-lg p-4">
+        <h2 className="text-2xl font-semibold text-white">Level: {level}</h2>
+        <h2 className="text-2xl font-semibold text-white">Score: {score}</h2>
+        <h2 className="text-2xl font-semibold text-white">Time: {timeLeft}s</h2>
+      </div>
 
-      <div className="game-area">
-        {dots.map((dot) => (
+      <div className="relative w-full max-w-2xl h-96 bg-gray-200 rounded-lg shadow-lg overflow-hidden border-4 border-blue-500">
+        {balloons.map((balloon) => (
           <div
-            key={dot.id}
-            className={`dot ${dot.isSpecial ? 'special-dot' : ''}`}
+            key={balloon.id}
+            className={`balloon ${balloon.color} ${balloon.isSpecial ? 'border-4 border-yellow-400' : ''} 
+            absolute cursor-pointer rounded-full shadow-lg transform transition-all hover:scale-110 animate-pop`}
             style={{
-              top: `${dot.y}%`,
-              left: `${dot.x}%`,
-              width: `${dot.size}px`,
-              height: `${dot.size}px`,
-              backgroundColor: dot.isSpecial ? 'gold' : 'red',
+              top: `${balloon.y}%`,
+              left: `${balloon.x}%`,
+              width: `${balloon.size}px`,
+              height: `${balloon.size}px`,
             }}
-            onClick={() => handleDotClick(dot)}
+            onClick={() => handleBalloonClick(balloon)}
           ></div>
         ))}
       </div>
 
-      {snackbarVisible && <Snackbar message={snackbarMessage} />}
+      {snackbarVisible && (
+        <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-blue-500 text-white px-6 py-3 rounded-lg shadow-md animate-slideIn">
+          {snackbarMessage}
+        </div>
+      )}
     </div>
   );
 }
