@@ -1,179 +1,120 @@
-import React, { useState, useEffect, useRef } from 'react';
-import './App.css';
-// import clickSoundFile from './click-sound.mp3';
-// import bonusSoundFile from './bonus-sound.mp3';
+import React, { useState, useEffect } from 'react';
+import './App.css'; // Assuming the CSS you shared is inside this file
+import popSoundFile from './pop-sound.mp3'; // Placeholder for your popping sound
 
 function App() {
-  const [dots, setDots] = useState([]);
+  const [balloons, setBalloons] = useState([]);
   const [score, setScore] = useState(0);
   const [level, setLevel] = useState(1);
   const [timeLeft, setTimeLeft] = useState(30);
   const [gameOver, setGameOver] = useState(false);
-  const [slowMotion, setSlowMotion] = useState(false);
-  const [doublePoints, setDoublePoints] = useState(false);
   const [combo, setCombo] = useState(0);
-  const [highScores, setHighScores] = useState(JSON.parse(localStorage.getItem('highScores')) || []);
-  
-  // const clickSound = new Audio(clickSoundFile);
-  // const bonusSound = new Audio(bonusSoundFile);
-  const dotMoveInterval = useRef(null);
+  const popSound = new Audio(popSoundFile);
 
-  // Generate random dots
-  const generateDots = () => {
-    const numDots = level * 5;
-    const newDots = Array.from({ length: numDots }, () => ({
-      id: Math.random(),
-      x: Math.random() * 90,
-      y: Math.random() * 90,
-      size: Math.random() * (30 - 10) + 10, // Random size between 10px and 30px
-      isBonus: Math.random() < 0.1, // 10% chance for bonus
-      speed: Math.random() * 0.5 + 0.5, // Speed for moving dots
-    }));
-    setDots(newDots);
-  };
-
-  // Move dots based on level difficulty
-  const moveDots = () => {
-    if (level > 1) {
-      dotMoveInterval.current = setInterval(() => {
-        setDots((prevDots) =>
-          prevDots.map((dot) => ({
-            ...dot,
-            x: (dot.x + dot.speed * (slowMotion ? 0.5 : 1)) % 90,
-            y: (dot.y + dot.speed * (slowMotion ? 0.5 : 1)) % 90,
-          }))
-        );
-      }, 100);
+  // Function to generate random color for balloons
+  const generateRandomColor = () => {
+    const letters = '0123456789ABCDEF';
+    let color = '#';
+    for (let i = 0; i < 6; i++) {
+      color += letters[Math.floor(Math.random() * 16)];
     }
+    return color;
   };
 
+  // Generate new balloons throughout the level
   useEffect(() => {
-    generateDots();
-    moveDots();
-    return () => clearInterval(dotMoveInterval.current);
-  }, [level]);
+    const balloonInterval = setInterval(() => {
+      if (timeLeft > 0) {
+        generateBalloon();
+      }
+    }, 1000); // Generate a balloon every second
 
-  // Timer logic and power-ups
+    return () => clearInterval(balloonInterval);
+  }, [timeLeft]);
+
+  // Timer logic
   useEffect(() => {
     const interval = setInterval(() => {
-      setTimeLeft((prevTime) => (prevTime > 0 ? prevTime - 1 : 0));
-    }, 1000);
-
-    if (timeLeft === 0) {
-      if (dots.length === 0) {
-        alert(`Level ${level} complete! Moving to the next level.`);
-        setLevel(level + 1);
-        setTimeLeft(30);
+      if (timeLeft > 0) {
+        setTimeLeft((prevTime) => prevTime - 1);
       } else {
         setGameOver(true);
-        updateHighScores(score);
       }
-    }
+    }, 1000);
 
     return () => clearInterval(interval);
-  }, [timeLeft, dots]);
+  }, [timeLeft]);
 
-  // Handle dot click
-  const handleDotClick = (dot) => {
-    // clickSound.play();
-    let points = dot.isBonus ? 50 : 10;
-    if (doublePoints) points *= 2;
-    setScore(score + points);
-    setDots(dots.filter((d) => d.id !== dot.id));
+  const generateBalloon = () => {
+    const newBalloon = {
+      id: Math.random(),
+      x: Math.random() * 90,
+      y: Math.random() * 80,
+      size: Math.random() * (50 - 30) + 30,
+      color: generateRandomColor(), // Assign a random color
+      isBonus: Math.random() < 0.1, // 10% chance for bonus
+    };
+    setBalloons((prevBalloons) => [...prevBalloons, newBalloon]);
+  };
 
-    // Increase combo count
+  const handleBalloonClick = (balloonId) => {
+    popSound.play();
+    setScore((prevScore) => prevScore + 10);
     setCombo(combo + 1);
-
-    // Trigger slow motion power-up every 10 combo hits
-    if (combo > 0 && combo % 10 === 0) {
-      activatePowerUp('slowMotion');
-    }
-
-    // Trigger double points at random
-    if (Math.random() < 0.05) {
-      activatePowerUp('doublePoints');
-    }
+    setBalloons(balloons.filter((b) => b.id !== balloonId));
   };
 
-  // Activate power-ups
-  const activatePowerUp = (type) => {
-    if (type === 'slowMotion') {
-      setSlowMotion(true);
-      setTimeout(() => setSlowMotion(false), 5000);
-    } else if (type === 'doublePoints') {
-      setDoublePoints(true);
-      setTimeout(() => setDoublePoints(false), 5000);
-    }
-  };
-
-  // Update leaderboard
-  const updateHighScores = (newScore) => {
-    const updatedScores = [...highScores, newScore].sort((a, b) => b - a).slice(0, 5);
-    setHighScores(updatedScores);
-    localStorage.setItem('highScores', JSON.stringify(updatedScores));
-  };
-
-  // Restart game
   const restartGame = () => {
     setScore(0);
     setLevel(1);
     setTimeLeft(30);
     setGameOver(false);
     setCombo(0);
-    generateDots();
+    setBalloons([]);
   };
 
   if (gameOver) {
     return (
-      <div className="game-over fade-in">
-        <h1>Game Over!</h1>
+      <div className="expired-notice">
+        <span>Game Over!</span>
         <p>Your Score: {score}</p>
         <button onClick={restartGame}>Restart Game</button>
-        <h3>Leaderboard:</h3>
-        <ol>
-          {highScores.map((highScore, index) => (
-            <li key={index}>{highScore}</li>
-          ))}
-        </ol>
       </div>
     );
   }
 
   return (
-    <div className="App fade-in" style={{ backgroundColor: level % 2 === 0 ? '#f0f0f0' : '#e0ffe0' }}>
-      <h1>BetterAim</h1>
-      <h2>Level: {level}</h2>
-      <h2 className="score-counter">Score: {score}</h2>
-      <h2>Combo: {combo}</h2>
-      <h2>Time Left: {timeLeft}s</h2>
-      <ProgressBar timeLeft={timeLeft} />
-
-      {slowMotion && <p className="power-up glow-effect">Slow Motion Activated!</p>}
-      {doublePoints && <p className="power-up glow-effect">Double Points Activated!</p>}
+    <div className="App">
+      <header className="game-header">
+        <h1>Balloon Pop Game</h1>
+        <div id="timer">
+          Time Left: {timeLeft}s
+        </div>
+        <div className="scoreboard">
+          <span>Level: {level}</span>
+          <span>Score: {score}</span>
+          <span>Combo: {combo}</span>
+        </div>
+      </header>
 
       <div className="game-area">
-        {dots.map((dot) => (
+        {balloons.map((balloon) => (
           <div
-            key={dot.id}
-            className={`dot bounce ${dot.isBonus ? 'bonus' : ''}`}
+            key={balloon.id}
+            className={`balloon ${balloon.isBonus ? 'bonus' : ''}`}
             style={{
-              top: `${dot.y}%`,
-              left: `${dot.x}%`,
-              width: `${dot.size}px`,
-              height: `${dot.size}px`,
-              backgroundColor: dot.size < 20 ? 'blue' : dot.size > 25 ? 'green' : 'red',
+              top: `${balloon.y}%`,
+              left: `${balloon.x}%`,
+              width: `${balloon.size}px`,
+              height: `${balloon.size}px`, // Adjust height to match width for round shape
+              backgroundColor: balloon.color, // Set background color to the random color
             }}
-            onClick={() => handleDotClick(dot)}
+            onClick={() => handleBalloonClick(balloon.id)}
           ></div>
         ))}
       </div>
     </div>
   );
-}
-
-function ProgressBar({ timeLeft }) {
-  const percentage = (timeLeft / 30) * 100;
-  return <div className="progress-bar" style={{ width: `${percentage}%` }}></div>;
 }
 
 export default App;
