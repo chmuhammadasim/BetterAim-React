@@ -4,7 +4,6 @@ import popSoundFile from './pop-sound.mp3'; // Placeholder for your popping soun
 
 function App() {
   const [balloons, setBalloons] = useState([]);
-  const [balloons, setBalloons] = useState([]);
   const [score, setScore] = useState(0);
   const [level, setLevel] = useState(1);
   const [timeLeft, setTimeLeft] = useState(30);
@@ -116,11 +115,7 @@ function App() {
         ))}
       </div>
 
-      {snackbarVisible && (
-        <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-blue-500 text-white px-6 py-3 rounded-lg shadow-md animate-slideIn">
-          {snackbarMessage}
-        </div>
-      )}
+      
     </div>
   );
 }
