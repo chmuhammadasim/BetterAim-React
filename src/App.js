@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import './App.css'; // Assuming the CSS you shared is inside this file
+import './App.css'; // Assuming the CSS you shared is inside this file, please follow it
 import popSoundFile from './pop-sound.mp3'; // Placeholder for your popping sound
 
 function App() {
