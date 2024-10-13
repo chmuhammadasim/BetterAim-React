@@ -100,3 +100,74 @@
     opacity: 1;
   }
 }
+
+/* Base App styles */
+.App {
+  font-family: 'Arial', sans-serif;
+}
+
+/* Full-screen header and layout adjustments */
+.game-header {
+  position: sticky;
+  top: 0;
+}
+
+/* Game area with balloons */
+.game-area {
+  /* background: url('/path/to/your/background/image.jpg') no-repeat center center fixed; Optional background image */
+  background-size: cover;
+}
+
+/* Balloon styles */
+.balloon {
+  border-radius: 50%; /* Perfectly round */
+  position: absolute;
+  cursor: pointer;
+  transition: transform 0.1s ease, background-color 0.2s ease;
+  animation: fade-in 0.5s ease-in;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+  transform-origin: bottom;
+}
+
+/* Bonus balloon styles */
+.bonus {
+  background-color: gold;
+  box-shadow: 0px 0px 10px 5px gold;
+}
+
+/* Pop effect */
+@keyframes pop {
+  0% {
+    transform: scale(1);
+  }
+  100% {
+    transform: scale(0);
+    opacity: 0;
+  }
+}
+
+.popped {
+  animation: pop 0.3s forwards;
+}
+
+/* Balloon string */
+.balloon::after {
+  content: '';
+  display: block;
+  position: absolute;
+  width: 2px;
+  height: 20px;
+  background-color: #999;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
