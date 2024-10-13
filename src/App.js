@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import './App.css'; // You can still use this for any additional custom styles
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import './App.css';
 import popSoundFile from './pop-sound.mp3';
+import { FaRegClock, FaStar, FaLevelUpAlt, FaVolumeUp, FaVolumeMute } from 'react-icons/fa';
 
 function App() {
   const [balloons, setBalloons] = useState([]);
@@ -9,113 +10,93 @@ function App() {
   const [timeLeft, setTimeLeft] = useState(30);
   const [gameOver, setGameOver] = useState(false);
   const [combo, setCombo] = useState(0);
-  const popSound = new Audio(popSoundFile);
+  const [paused, setPaused] = useState(false);
+  const [soundOn, setSoundOn] = useState(true);
+  const popSoundRef = useRef(new Audio(popSoundFile));
 
-  useEffect(() => {
-    const balloonInterval = setInterval(() => {
-      if (timeLeft > 0) {
-        generateBalloon();
-      }
-    }, 1000 - level * 50); 
+  const generateRandomColor = () => {
+    const colors = ['#FF6347', '#FFD700', '#8A2BE2', '#32CD32', '#FF69B4'];
+    return colors[Math.floor(Math.random() * colors.length)];
+  };
 
-    return () => clearInterval(balloonInterval);
-  }, [timeLeft, level]);
-
-  useEffect(() => {
-    const timerInterval = setInterval(() => {
-      if (timeLeft > 0) {
-        setTimeLeft((prevTime) => prevTime - 1);
-      } else {
-        setGameOver(true);
-      }
-    }, 1000);
-
-    return () => clearInterval(timerInterval);
-  }, [timeLeft]);
-
-  const generateBalloon = () => {
+  const generateBalloon = useCallback(() => {
+    const faces = ['🎈', '😀', '🥳', '😎', '🤡', '🐸'];
     const newBalloon = {
       id: Math.random(),
       x: Math.random() * 90,
       y: Math.random() * 80,
-      size: Math.random() * (50 - 30) + 30 - level * 2, // Balloons get smaller
+      size: Math.max(50, Math.random() * (100 - 50) + 30 - level * 2),
       color: generateRandomColor(),
+      face: faces[Math.floor(Math.random() * faces.length)],
       isBonus: Math.random() < 0.1,
+      type: Math.random() < 0.05 ? 'time' : Math.random() < 0.05 ? 'slow' : null,
     };
-    setBalloons((prevBalloons) => [...prevBalloons, newBalloon]);
-  };
+    setBalloons((prev) => [...prev, newBalloon]);
+  }, [level]);
 
-  const generateRandomColor = () => {
-    const letters = '0123456789ABCDEF';
-    let color = '#';
-    for (let i = 0; i < 6; i++) {
-      color += letters[Math.floor(Math.random() * 16)];
+  useEffect(() => {
+    if (paused || gameOver) return;
+    const interval = setInterval(generateBalloon, Math.max(500 - level * 50, 300));
+    return () => clearInterval(interval);
+  }, [generateBalloon, level, paused, gameOver]);
+
+  useEffect(() => {
+    if (timeLeft <= 0) setGameOver(true);
+    if (!paused && !gameOver) {
+      const timer = setInterval(() => setTimeLeft((prev) => prev - 1), 1000);
+      return () => clearInterval(timer);
     }
-    return color;
-  };
+  }, [paused, gameOver, timeLeft]);
 
-  const handleBalloonClick = (balloonId) => {
-    popSound.play();
-    const clickedBalloon = balloons.find(b => b.id === balloonId);
-    setScore((prevScore) => prevScore + (clickedBalloon.isBonus ? 20 : 10));
-    setCombo((prevCombo) => prevCombo + 1);
-    setBalloons(balloons.filter((b) => b.id !== balloonId));
+  const handleBalloonClick = (id) => {
+    const balloon = balloons.find((b) => b.id === id);
+    if (!balloon) return;
 
-    if (combo % 10 === 0) {
-      advanceLevel();
-    }
+    if (soundOn) popSoundRef.current.play();
+    setBalloons((prev) => prev.filter((b) => b.id !== id));
+    setScore((prev) => prev + (balloon.isBonus ? 20 : 10));
+
+    if (balloon.type === 'time') setTimeLeft((prev) => prev + 5);
+    if (balloon.type === 'slow') setPaused(true); // Temporarily pauses
+
+    setCombo((prev) => (prev + 1) % 10 === 0 ? advanceLevel() : prev + 1);
   };
 
   const advanceLevel = () => {
-    setLevel((prevLevel) => prevLevel + 1);
-    setTimeLeft(30); // Reset time for each level
+    setLevel((prev) => prev + 1);
+    setTimeLeft(30);
   };
 
   const restartGame = () => {
     setScore(0);
     setLevel(1);
     setTimeLeft(30);
-    setGameOver(false);
     setCombo(0);
+    setPaused(false);
     setBalloons([]);
+    setGameOver(false);
   };
 
-  if (gameOver) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full bg-gradient-to-b from-gray-800 to-gray-900 text-white relative overflow-hidden">
-        {/* Background animation or effect */}
-        <div className="absolute inset-0 z-0 opacity-50">
-          <div className="w-full h-full animate-pulse bg-blue-500" style={{ clipPath: 'circle(75% at 50% 50%)' }} />
-        </div>
-        <div className="relative z-10 flex flex-col items-center">
-          <span className="text-5xl font-extrabold text-yellow-300 animate-bounce">Game Over!</span>
-          <p className="text-2xl mt-2">Your Score: <span className="font-bold text-yellow-500">{score}</span></p>
-          <button 
-            className="mt-6 px-6 py-3 bg-blue-600 rounded-lg text-lg font-semibold transition-transform transform hover:scale-105 hover:bg-blue-500 active:scale-95 shadow-lg"
-            onClick={restartGame}>
-            Restart Game
-          </button>
-        </div>
-      </div>
-    );
-  }
-  
-
   return (
-    <div className="App flex flex-col items-center justify-between h-screen bg-gradient-to-b from-blue-500 to-indigo-500">
-      <header className="w-full bg-gray-800 text-white p-4 flex justify-around items-center">
-        <h1 className="text-2xl">Balloon Pop Game</h1>
-        <div id="timer" className="text-2xl">
-          Time Left: {timeLeft}s
+    <div className="App">
+      <header className="header">
+        <h1>🎉 Balloon Pop!</h1>
+        <div className="info">
+          <span><FaRegClock /> {timeLeft}s</span>
+          <span><FaLevelUpAlt /> Level {level}</span>
+          <span><FaStar /> {score}</span>
         </div>
-        <div className="flex space-x-4">
-          <span>Level: {level}</span>
-          <span>Score: {score}</span>
-          <span>Combo: {combo}</span>
+        <div className="controls">
+          <button onClick={() => setPaused(!paused)}>
+            {paused ? 'Resume' : 'Pause'}
+          </button>
+          <button onClick={() => setSoundOn(!soundOn)}>
+            {soundOn ? <FaVolumeUp /> : <FaVolumeMute />}
+          </button>
         </div>
       </header>
 
-      <div className="game-area relative w-full flex-1 overflow-hidden">
+      <div className="game-area">
         {balloons.map((balloon) => (
           <div
             key={balloon.id}
@@ -126,12 +107,21 @@ function App() {
               width: `${balloon.size}px`,
               height: `${balloon.size}px`,
               backgroundColor: balloon.color,
-              animation: `float ${3 - level * 0.2}s infinite ease-in-out`, // Floating animation
             }}
             onClick={() => handleBalloonClick(balloon.id)}
-          ></div>
+          >
+            {balloon.face}
+          </div>
         ))}
       </div>
+
+      {gameOver && (
+        <div className="game-over-screen">
+          <h2>Game Over</h2>
+          <p>Your Score: {score}</p>
+          <button onClick={restartGame}>Restart Game</button>
+        </div>
+      )}
     </div>
   );
 }
