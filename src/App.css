@@ -281,3 +281,38 @@ button:hover {
     font-size: 14px;
   }
 }
+
+.App {
+  text-align: center;
+  font-family: 'Arial', sans-serif;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px;
+  background-color: #333;
+  color: white;
+}
+
+.game-area {
+  position: relative;
+  width: 100%;
+  height: 80vh;
+  overflow: hidden;
+  background-color: #f0f8ff;
+}
+
+.balloon {
+  position: absolute;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  transition: transform 0.1s;
+}
+
+.balloon:active {
+  transform: scale(0.9);
+}
