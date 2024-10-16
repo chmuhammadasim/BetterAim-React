@@ -2,6 +2,9 @@
 
 **Balloon Pop** is a delightful web-based game built using React, where players aim to pop as many colorful balloons as possible while managing a timer and lives. The game includes exciting features such as various power-ups, increasing difficulty levels, and engaging sound effects, making it an entertaining experience for users of all ages.
 
+**Live:**
+https://better-aim-react.vercel.app/
+
 ## Table of Contents
 
 - [Features](#features)
